@@ -1,6 +1,6 @@
 # PNN Library: Neural network manager
 
-# Standard library imports
+# Imports
 import os
 import gc
 import re
@@ -27,30 +27,26 @@ import statistics
 import subprocess
 import collections
 import dataclasses
-import distutils.util
 from enum import Enum, auto
 from typing import Any, Union, Tuple, Iterable, Callable, Dict
-
-# Third-party imports
 import portalocker
 import torch
 import torch.backends.cudnn
-
-# Local imports
-import util.git
-import util.nvsmi
-import util.objmanip
-import util.interpreter
-import util.contextman
-import util.execlock
-import util.filter
-import util.pickle
-import util.print
-import util.string
-import util.stdtee
-from util.classes import EnumLU
-from util.print import print_warn
-from util.argparse import AppendData, IntRange
+import ppyutil.git
+import ppyutil.nvsmi
+import ppyutil.objmanip
+import ppyutil.interpreter
+import ppyutil.contextman
+import ppyutil.execlock
+import ppyutil.filter
+import ppyutil.pickle
+import ppyutil.print
+import ppyutil.string
+import ppyutil.stdtee
+from ppyutil.classes import EnumLU
+from ppyutil.string import strtobool
+from ppyutil.print import print_warn
+from ppyutil.argparse import AppendData, IntRange
 from pnnlib import config, yaml_spec, netmodel, dataset, training, GPUHardwareError
 from pnnlib.training import loss_fmt, rloss_fmt
 from pnnlib.util import system_info, device_util, tensor_util, model_util, misc_util
@@ -156,7 +152,7 @@ SAVED_MODEL_META_SUFFIX = '_meta'
 SAVED_MODEL_META_SUFFIX_EXT = SAVED_MODEL_META_SUFFIX + SAVED_MODEL_META_EXT
 
 # Print formats
-perf_fmt = lambda value: 'd' if isinstance(value, int) else '#.4g'
+perf_fmt = lambda value: 'd' if isinstance(value, int) else '#.4g'  # noqa
 
 ###############
 ### Classes ###
@@ -272,14 +268,14 @@ class PNNManager:
 		print(f"Config file: {self.config_file}")
 		self.config_manager = config.ConfigManager(self.config_file, self.config_spec, config_check=self.config_check, converters=self.config_converters, **self.config_kwargs)
 		print("Loaded configurations:")
-		util.print.print_as_columns(self.config_manager.config_names(), line_prefix='  ')
+		ppyutil.print.print_as_columns(self.config_manager.config_names(), line_prefix='  ')
 		print()
 
 		self.csvfmt_file = os.path.abspath(csvfmt_file if csvfmt_file is not None else self.default_csvfmt_file)
 		print(f"CSV format file: {self.csvfmt_file}")
 		self.csvfmt_manager = yaml_spec.YAMLSpecManager(self.csvfmt_file, join_lists=yaml_spec.JoinLists.Append)
 		print("Loaded CSV formats:")
-		util.print.print_as_columns(self.csvfmt_manager.spec_names(), line_prefix='  ')
+		ppyutil.print.print_as_columns(self.csvfmt_manager.spec_names(), line_prefix='  ')
 		print()
 
 		return self
@@ -364,7 +360,7 @@ class PNNManager:
 
 		args = self.parse_arguments(argv)
 
-		util.print.printc(f"{self.name} {self.version}", misc_util.header_color)
+		ppyutil.print.printc(f"{self.name} {self.version}", misc_util.header_color)
 		print()
 
 		self.initialise(config_file=args.config_file, csvfmt_file=args.csvfmt_file, models_dir=args.models_dir, device=args.device)
@@ -399,7 +395,7 @@ class PNNManager:
 		if key == Action.DebugArgs:
 			misc_util.print_header("Debug command line arguments")
 			print('Parsed arguments:')
-			util.print.pprint_to_width(vars(args))
+			ppyutil.print.pprint_to_width(vars(args))
 			print()
 
 		elif key == Action.LoadModel:
@@ -488,7 +484,7 @@ class PNNManager:
 
 		newline_config = self.run_lock.config(newline=False, block_newline=True, restore_to_init=True, sticky=True)
 		with contextlib.ExitStack() as stack:
-			with util.contextman.DynamicContext() as cm:
+			with ppyutil.contextman.DynamicContext() as cm:
 				cm.register_callback(clear_context_callback)
 				self.cm[context] = cm
 				if context == Context.Process:
@@ -546,7 +542,7 @@ class PNNManager:
 
 	# noinspection PyUnresolvedReferences
 	def verify_lowmem(self):
-		if util.execlock.process_exiting():
+		if ppyutil.execlock.process_exiting():
 			return
 		if torch.cuda.is_initialized():
 			if sys.exc_info()[0] is None:
@@ -637,7 +633,7 @@ class PNNManager:
 		if stats_basis is None:
 			return DatasetStatsBasis.Default
 		elif isinstance(stats_basis, str):
-			return DatasetStatsBasis.fromStr(stats_basis)
+			return DatasetStatsBasis.from_str(stats_basis)
 		else:
 			raise TypeError(f"Invalid dataset statistics basis specification (should be None or str): {stats_basis}")
 
@@ -684,7 +680,7 @@ class PNNManager:
 		misc_util.print_header("Show available configurations")
 		print(f"Config file: {self.config_file}")
 		print("Loaded configurations:")
-		util.print.print_as_columns(self.config_manager.config_names(), line_prefix='  ')
+		ppyutil.print.print_as_columns(self.config_manager.config_names(), line_prefix='  ')
 		print()
 		self.config_manager.pprint()
 
@@ -692,7 +688,7 @@ class PNNManager:
 		misc_util.print_header("Show available CSV formats")
 		print(f"CSV format file: {self.csvfmt_file}")
 		print("Loaded CSV formats:")
-		util.print.print_as_columns(self.csvfmt_manager.spec_names(), line_prefix='  ')
+		ppyutil.print.print_as_columns(self.csvfmt_manager.spec_names(), line_prefix='  ')
 		print()
 		self.csvfmt_manager.pprint(header='CSV format')
 
@@ -736,10 +732,10 @@ class PNNManager:
 								commit_hash = words[2]
 						elif line.startswith('Includes tracked binary files:'):
 							with contextlib.suppress(ValueError, IndexError):
-								tracked_binary = bool(distutils.util.strtobool(line.split()[4]))
+								tracked_binary = strtobool(line.split()[4])
 						elif line.startswith('Includes untracked binary files:'):
 							with contextlib.suppress(ValueError, IndexError):
-								untracked_binary = bool(distutils.util.strtobool(line.split()[4]))
+								untracked_binary = strtobool(line.split()[4])
 
 				if repo_path:
 					print(f"Repo path: {repo_path}")
@@ -768,13 +764,13 @@ class PNNManager:
 		repo_dirty = True
 		orig_head = None
 		if use_patch:
-			repo = util.git.get_git_repo(path=repo_path)
+			repo = ppyutil.git.get_git_repo(path=repo_path)
 			if repo is None:
 				print_warn(f"Failed to open git repository => Skipping checks that require repository access...")
 				have_notes = True
 			else:
 				repo_dirty = repo.is_dirty(index=True, working_tree=True, untracked_files=True)
-				orig_head = util.git.head_symbolic_ref(repo)
+				orig_head = ppyutil.git.head_symbolic_ref(repo)
 			if not repo_dirty:
 				print("Note: Git repository is currently clean (no working changes/untracked files) => Skipping git stash/pop in the instructions below...")
 				have_notes = True
@@ -1222,7 +1218,7 @@ class PNNManager:
 		# Return a criterion for the model (see netmodel.NetModel.get_criterion() function)
 		print("Using criterion:")
 		criterion = model.get_criterion_moved()
-		print(util.string.add_line_prefix(str(criterion), '  '))
+		print(ppyutil.string.add_line_prefix(str(criterion), '  '))
 		print()
 		return criterion
 
@@ -1232,7 +1228,7 @@ class PNNManager:
 		# Return an optimizer for the model (see netmodel.NetModel.get_optimizer() function)
 		print("Using optimizer:")
 		optimizer = model.get_optimizer()
-		print(util.string.add_line_prefix(str(optimizer), '  '))
+		print(ppyutil.string.add_line_prefix(str(optimizer), '  '))
 		print()
 		return optimizer
 
@@ -1244,11 +1240,12 @@ class PNNManager:
 		# Return a learning rate scheduler for the model (torch.optim.lr_scheduler._LRScheduler), and the required arguments for the scheduler (LRSchedulerArgs enum or iterable thereof)
 		print("Using learning rate scheduler:")
 		scheduler, reqd_scheduler_args = cls.load_scheduler_impl(C, optimizer, model)
-		print(util.string.add_line_prefix(f"Scheduler object: {scheduler}", '  '))
+		print(ppyutil.string.add_line_prefix(f"Scheduler object: {scheduler}", '  '))
 		print(f"  Required arguments: {reqd_scheduler_args.name if isinstance(reqd_scheduler_args, LRSchedulerArgs) else ', '.join(sarg.name for sarg in reqd_scheduler_args)}")
 		print()
 		return scheduler, reqd_scheduler_args
 
+	# noinspection PyUnusedLocal
 	@classmethod
 	def load_scheduler_impl(cls, C, optimizer, model) -> Tuple[Any, Union[LRSchedulerArgs, Iterable[LRSchedulerArgs]]]:
 		# C = Configuration of type config.Config
@@ -1264,10 +1261,11 @@ class PNNManager:
 		# Return a stopper class (training.StopperBase)
 		print("Using stopper:")
 		stopper = cls.load_stopper_impl(C)
-		print(util.string.add_line_prefix(str(stopper), '  '))
+		print(ppyutil.string.add_line_prefix(str(stopper), '  '))
 		print()
 		return stopper
 
+	# noinspection PyUnusedLocal
 	@classmethod
 	def load_stopper_impl(cls, C):
 		# C = Configuration of type config.Config
@@ -1351,7 +1349,7 @@ class PNNManager:
 		if create_tee_logger:
 			log_file_name = subdir_name + '.log'
 			log_file_path = os.path.join(models_subdir, log_file_name)
-			tee_logger = util.stdtee.StdTee(log_file_path, file_line_buffered=util.interpreter.debugger_attached())
+			tee_logger = ppyutil.stdtee.StdTee(log_file_path, file_line_buffered=ppyutil.interpreter.debugger_attached())
 			print(f"Log file: {log_file_name}")
 
 		git_info = None
@@ -1385,9 +1383,9 @@ class PNNManager:
 		if force_valid_patch is None:
 			force_valid_patch = self.git_force_valid_patch
 
-		git_repo = util.git.get_git_repo(obj=git_repo_spec)
-		git_head = util.git.get_repo_head(git_repo)
-		git_diff = util.git.all_working_changes(git_repo, tracked_binary=self.git_snapshot_tracked_binary, untracked_binary=self.git_snapshot_untracked_binary)
+		git_repo = ppyutil.git.get_git_repo(obj=git_repo_spec)
+		git_head = ppyutil.git.get_repo_head(git_repo)
+		git_diff = ppyutil.git.all_working_changes(git_repo, tracked_binary=self.git_snapshot_tracked_binary, untracked_binary=self.git_snapshot_untracked_binary)
 
 		git_info = {
 			'repo': git_repo.working_dir,
@@ -1437,7 +1435,7 @@ class PNNManager:
 
 			source_snapshot_name = f"{source_snapshot_basename}_{source_snapshot_profile}.py"
 			source_snapshot_path = os.path.join(source_snapshot_dir, source_snapshot_name)
-			source_code = util.pickle.get_pickle_types_source_code(model_save_data, include_builtins=self.source_snapshot_builtins, include_in_prefix=self.source_snapshot_in_prefix)
+			source_code = ppyutil.pickle.get_pickle_types_source_code(model_save_data, include_builtins=self.source_snapshot_builtins, include_in_prefix=self.source_snapshot_in_prefix)
 
 			if reference_snapshot is not None and source_snapshot_profile in reference_snapshot:
 				if source_code == reference_snapshot[source_snapshot_profile][2]:
@@ -1590,7 +1588,7 @@ class PNNManager:
 			saved = True
 
 		if save_yaml or save_json or always_simplify:
-			Rsimple = util.objmanip.simplify_object(R)
+			Rsimple = ppyutil.objmanip.simplify_object(R)
 
 		if save_yaml:
 			results_yaml = basepath + '.yaml'
@@ -1614,7 +1612,7 @@ class PNNManager:
 
 	@classmethod
 	def save_results_csv(cls, R, save_dir, file_basename, CSVF):
-		# R = Results data to save in CSV form (ideally this should be a simplified object, see util.objmanip.simplify_object())
+		# R = Results data to save in CSV form (ideally this should be a simplified object, see ppyutil.objmanip.simplify_object())
 		# save_dir = Directory to save the CSV into
 		# file_basename = Base filename to use (--> SAVEDIR/BASENAME_results.csv)
 		# CSVF = yaml_spec.YAMLSpec of format (name, spec), where spec is a dict specifying the required output format of the CSV (fields: columns = List(str), names = Dict[str] -> str, all = Bool)
@@ -1622,7 +1620,7 @@ class PNNManager:
 
 		print("Saving results data to CSV:")
 		print(f"  CSV format: {CSVF.name}")
-		Rflat = util.objmanip.flatten_object_dicts(R, flatten_all=True)
+		Rflat = ppyutil.objmanip.flatten_object_dicts(R, flatten_all=True)
 		print(f"  Number of unique columns available = {len(Rflat)}")
 
 		csv_fmt = CSVF.spec
@@ -1997,7 +1995,7 @@ class PNNManager:
 		# load_dataset_opts = Custom options for loading the dataset
 		# Return a dict with data on the training environment and training results
 
-		string_tee = util.stdtee.StdTeeString()
+		string_tee = ppyutil.stdtee.StdTeeString()
 		with string_tee:
 
 			C = self.resolve_configuration(C)
@@ -2022,7 +2020,7 @@ class PNNManager:
 			R['Model'] = model_info
 			R['Dataset'] = dataset_info
 
-			nvsmi = util.nvsmi.NvidiaSMI()
+			nvsmi = ppyutil.nvsmi.NvidiaSMI()
 			training.reset_gpu_memory_status_peaks(model.device)
 
 			def get_model_dims(obj):
@@ -2097,7 +2095,7 @@ class PNNManager:
 			smi_infos = []
 			gpu_mem_statuses = []
 
-			tprint = util.print.TimedPrinter()
+			tprint = ppyutil.print.TimedPrinter()
 			tprint_lock = action_cm.enter_context(self.run_lock.config(newline=False, block_newline=False, file=tprint))
 
 			if C.TrainLogCSV:
@@ -2122,7 +2120,7 @@ class PNNManager:
 			best_lr = initial_lr
 
 			smi_info = training.show_nvidia_smi_status(model.device, nvsmi, file=tprint)
-			gpu_temp_lowpass = util.filter.LowPassFilter(Ts=C.GPUTempLowPassTs, init_value=smi_info['temp'] if smi_info else 40)
+			gpu_temp_lowpass = ppyutil.filter.LowPassFilter(settling_time=C.GPUTempLowPassTs, init_value=smi_info['temp'] if smi_info else 40)
 			training.show_gpu_memory_status(model.device, file=tprint)
 
 			solo_lock = None

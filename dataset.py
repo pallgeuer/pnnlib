@@ -1,6 +1,6 @@
 # PNN Library: Dataset classes
 
-# Standard library imports
+# Imports
 import os
 import re
 import random
@@ -9,14 +9,10 @@ import itertools
 from enum import Enum, Flag, auto
 from collections import namedtuple, Counter
 from typing import Callable, Optional, NamedTuple, Tuple, Sequence, Union, Dict, Any
-
-# Third-party imports
 import PIL.Image
 import torch.utils.data
-
-# Local imports
-from util.classes import EnumFI
-from util.contextman import ReentrantMeta
+from ppyutil.classes import EnumFI
+from ppyutil.contextman import ReentrantMeta
 
 ####################
 ### Helper types ###
@@ -105,6 +101,7 @@ class ChannelTypeBase(namedtuple('ChannelType', 'value count tfrm_raw_deps tfrm_
 					else:
 						subbed_arg.append(value_tuple)
 				subbed_args.append(tuple(subbed_arg))
+		# noinspection PyUnresolvedReferences
 		return super().__new_member__(cls, *subbed_args, **kwargs)
 
 # Channel options enumeration base
@@ -898,6 +895,7 @@ class FlatDataset(StagedDataset):
 		# reqd_res_types = Set of required resource types
 		# Return a deterministically sorted list of the samples, where each entry in the list is Tuple[sample_key, Dict[res_type, path]], and a list of string details about the loaded samples
 		check_file_func = self.get_check_file_func(self.res_type)
+		# noinspection PyUnresolvedReferences
 		samples = sorted((entry.name, {self.res_type: entry.path}) for entry in os.scandir(self.root) if entry.is_file() and entry.name.lower().endswith(self.res_type.ext) and (check_file_func is None or check_file_func(entry)))
 		for res_type in reqd_res_types:
 			if res_type != self.res_type:
@@ -924,7 +922,7 @@ class FlatDataset(StagedDataset):
 ############################
 
 # Subset-based dataset class
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass, PyUnresolvedReferences
 class SubsetDataset(ViewableStagedDataset):
 	# The assumed format of the dataset folder is:
 	#  - Samples:     ROOT/SAMPLES_DIR/RESOURCE/SUBSET/*.EXT

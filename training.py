@@ -5,12 +5,12 @@ import os
 import math
 import timeit
 import warnings
+from collections import deque
 from typing import Dict, Any
 import torch
 import torch.optim.lr_scheduler
-import util.nvsmi
-import util.math
-from collections import deque
+import ppyutil.nvsmi
+import ppyutil.math
 from pnnlib import dataset
 from pnnlib.util import device_util
 
@@ -118,7 +118,7 @@ class ReduceLROnPlateauMin(torch.optim.lr_scheduler.ReduceLROnPlateau):
 	def __init__(self, optimizer, grace=6, threshold_scale=1, **kwargs):
 
 		self.grace = grace
-		self.grace_skip = util.math.secretary_problem_soln(self.grace)
+		self.grace_skip = ppyutil.math.secretary_problem_soln(self.grace)
 		self.grace_test = self.grace - self.grace_skip
 		self.threshold_scale = threshold_scale
 
@@ -280,7 +280,7 @@ def show_gpu_memory_status(device, file=None):
 # Print the current NVIDIA SMI status of a CUDA device
 def show_nvidia_smi_status(device, nvsmi, file=None):
 	# device = Device to show the NVIDIA SMI status for
-	# nvsmi = A util.nvsmi.NvidiaSMI object (governs the lifetime of individual guaranteed access to the NVML library)
+	# nvsmi = A ppyutil.nvsmi.NvidiaSMI object (governs the lifetime of individual guaranteed access to the NVML library)
 	# file = File to which to print the NVIDIA SMI status
 	# Return the retrieved Nvidia SMI information as a dict (or None if information retrieval failed in some way)
 
@@ -328,7 +328,7 @@ def show_nvidia_smi_status(device, nvsmi, file=None):
 
 				return smi_info
 
-		except (TypeError, LookupError, KeyError, util.nvsmi.NVMLError) as e:
+		except (TypeError, LookupError, KeyError, ppyutil.nvsmi.NVMLError) as e:
 			print(f"Nvidia SMI: Status check of CUDA device failed with {e.__class__.__name__}: {e}", file=file)
 
 	return None

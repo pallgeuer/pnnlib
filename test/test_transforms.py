@@ -4,10 +4,11 @@
 # Imports
 import sys
 import warnings
+from typing import Tuple
 import PIL.Image
 import PIL.ImageDraw
 import numpy as np
-import util.image_plot as iplt
+import ppyutil.image_plot as iplt
 import matplotlib.pyplot as plt
 # noinspection PyUnresolvedReferences
 from mpl_toolkits.mplot3d import Axes3D
@@ -91,7 +92,7 @@ def CRR_test(CRR, image, output_size=None, num_points=11):
 		if output_image.mode != input_image.mode:
 			raise RuntimeError(f"CroppedResizeRect: Output image has a different mode ({output_image.mode}) than the input image ({input_image.mode})")
 
-		box = CRR.last_box_sized
+		box: Tuple[float, float, float, float] = CRR.last_box_sized
 		corners = ((box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3]))
 
 		input_image_rgb = input_image.convert('RGB')
@@ -107,6 +108,7 @@ def CRR_test(CRR, image, output_size=None, num_points=11):
 		draw_input = PIL.ImageDraw.Draw(input_image_rgb)
 		draw_output = PIL.ImageDraw.Draw(output_image_rgb)
 		draw_input.polygon(corners, outline='cyan')
+		# noinspection PyTypeChecker
 		draw_input.line([tuple(A + 0.1*(B - A) for A, B in zip(corners[0], corners[1])), tuple(A + 0.3*(D - A) for A, D in zip(corners[0], corners[3]))], fill='lime', width=1)
 		draw_output.line([(0.1*wo, 0), (0, 0.3*ho)], fill='lime', width=1)
 		for i in range(total_points):
@@ -159,6 +161,7 @@ def RAR_test(RAR, image, output_size=None, num_points=11, num_samples=4):
 		draw_input = PIL.ImageDraw.Draw(input_image_rgb)
 		draw_output = PIL.ImageDraw.Draw(output_image_rgb)
 		draw_input.polygon(corners, outline='cyan')
+		# noinspection PyTypeChecker
 		draw_input.line([tuple(A + 0.1*(B - A) for A, B in zip(corners[0], corners[1])), tuple(A + 0.3*(D - A) for A, D in zip(corners[0], corners[3]))], fill='lime', width=1)
 		draw_output.line([(0.1*wo, 0), (0, 0.3*ho)], fill='lime', width=1)
 		for i in range(total_points):
@@ -286,6 +289,7 @@ def RBCS_test(RBCS, image):
 # Draw scatter plot of random parameter selection for all methods of RandBriConSat class object
 def RBCS_param_scatter_all():
 	RBCS = transforms.RandBriConSat(bri_range=(0.7, 1.8), con_range=(0.5, 1.5), sat_range=(0.6, 1.2), fixed_bcs=(0.9, 1.1, 0.8))
+	# noinspection PyTypeChecker
 	for method in transforms.RandBriConSatMethod:
 		RBCS.set_method(method)
 		RBCS_param_scatter(RBCS)

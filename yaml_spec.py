@@ -4,7 +4,7 @@
 from enum import Enum, auto
 from collections import namedtuple
 import yaml
-import util.print
+import ppyutil.print
 
 # Join lists enumeration
 class JoinLists(Enum):
@@ -149,9 +149,10 @@ class YAMLSpecManager:
 		return self.get_spec_(self.default_name, default=default)
 
 	def pprint(self, header='YAML spec'):
-		iprint = util.print.PrefixedPrinter('  ')
+		iprint = ppyutil.print.PrefixedPrinter('  ')
 		for name, spec in self.__spec_dict.values():
 			print(f"{header} {name}:")
+			# noinspection PyTypeChecker
 			yaml.dump(spec, stream=iprint, indent=2, sort_keys=True, allow_unicode=True, default_flow_style=False, width=2147483647, Dumper=yaml.CSafeDumper)
 			print()
 # EOF

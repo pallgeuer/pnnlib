@@ -8,7 +8,7 @@ import PIL.Image
 import PIL.ImageStat
 from enum import auto
 import torchvision.transforms
-from util.classes import EnumLU
+from ppyutil.classes import EnumLU
 
 #
 # Enumerations

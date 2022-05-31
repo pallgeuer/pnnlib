@@ -76,11 +76,13 @@ class NetModel(nn.Module):
 		# Beware that this method is called already from the NetModel constructor, so the derived constructor will only have executed until super().__init__() at that point (using self.C is guaranteed to be okay though)
 		raise NotImplementedError(f"Class {self.__class__.__name__} has not implemented the {inspect.currentframe().f_code.co_name}() function")
 
+	# noinspection PyMethodMayBeStatic
 	def reference_output_names(self):
 		# Return an iterable of the string names of the implemented reference outputs
 		# Note: The returned order must match between the reference_output_names() and reference_outputs() functions!
 		return ()
 
+	# noinspection PyMethodMayBeStatic, PyUnusedLocal
 	def reference_outputs(self, input_data):
 		# input_data = Model input to return the reference outputs for
 		# Return an iterable of reference outputs (each identical in format to what the model would output for the given model input)
@@ -123,6 +125,7 @@ class NetModel(nn.Module):
 		# Return the ungrouped output data in the format Dict[ChannelSpec (flattened), Tensor]
 		return dataset.ungroup_data(self.reqd_outputs, output_data, sample_index)
 
+	# noinspection PyMethodMayBeStatic, PyUnusedLocal
 	def derive_output_data(self, ungrouped_data, perf_params=None):
 		# ungrouped_data = Ungrouped data (must correspond to the data for a SINGLE sample)
 		# perf_params = Performance evaluation parameters to use for deriving output data

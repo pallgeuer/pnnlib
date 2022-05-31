@@ -8,7 +8,7 @@ import inspect
 import collections
 import configparser
 from enum import Enum
-from util.classes import EnumLU
+from ppyutil.classes import EnumLU
 
 #
 # Classes
@@ -103,7 +103,7 @@ class ConfigManager:
 
 		supported_converters = get_module_enums(__name__)  # Defining enums inside this module is supported => They are automatically added as converters here
 
-		literal_eval = lambda string: ast.literal_eval(string)
+		literal_eval = lambda string: ast.literal_eval(string)  # noqa
 		supported_converters.append(('boolean', convert_to_boolean))
 		supported_converters.append((int.__name__, int))
 		supported_converters.append((float.__name__, float))
@@ -119,7 +119,7 @@ class ConfigManager:
 					supported_converters.append((converter[0].__name__, converter[1]))
 				elif inspect.isclass(converter):
 					if issubclass(converter, EnumLU):
-						supported_converters.append((converter.__name__, converter.fromStr))
+						supported_converters.append((converter.__name__, converter.from_str))
 					elif issubclass(converter, tuple):
 						# noinspection PyProtectedMember
 						supported_converters.append((converter.__name__, lambda string: converter._make(ast.literal_eval(string))))

@@ -11,9 +11,9 @@ from enum import Enum, auto
 from typing import Union, Optional, List
 import pycuda.driver
 import torch
-import util.contextman
-import util.execlock
-from util.execlock import SYSLOCK_PATH, DEFAULT_TIMEOUT, DEFAULT_CHECK_INTERVAL
+import ppyutil.contextman
+import ppyutil.execlock
+from ppyutil.execlock import SYSLOCK_PATH, DEFAULT_TIMEOUT, DEFAULT_CHECK_INTERVAL
 from pnnlib.util import cudadrv, cudart
 
 # Resolve a device specification to a torch.device
@@ -129,7 +129,7 @@ def device_lock_path(device: Union[None, str, torch.device], relative_to=SYSLOCK
 	return os.path.join(relative_to, 'device', lock_file)
 
 # Context manager that allows system-wide locking of a torch device (only protects from simultaneous device accesses by other processes that use this context manager as well)
-class DeviceLock(util.execlock.ExecutionLock):
+class DeviceLock(ppyutil.execlock.ExecutionLock):
 
 	def __init__(self, device, blocking=True, timeout=DEFAULT_TIMEOUT, check_interval=DEFAULT_CHECK_INTERVAL, lock_delay=0):
 		# device = Torch device to lock (see resolve_device() function, or None)
@@ -195,7 +195,7 @@ class GPULevel(Enum):
 	HighMemHighExec = auto()
 
 # GPU level execution locking class
-class GPULevelLock(util.execlock.RunLevelLock):
+class GPULevelLock(ppyutil.execlock.RunLevelLock):
 
 	def __init__(self, device, level_counts, running_thres=GPULevel.NormalMemLowExec, solo_thres=GPULevel.NormalMemHighExec, check_interval=DEFAULT_CHECK_INTERVAL, lock_delay=0, autoselect_cb=None):
 		# device = Torch device to lock (see resolve_device() function, or None)
@@ -212,7 +212,7 @@ class GPULevelLock(util.execlock.RunLevelLock):
 		self.set_device(device, makedirs=True)
 
 		autoselect_lock_abspath = device_lock_path('autoselect', relative_to=SYSLOCK_PATH)
-		self._autoselect_lock = util.execlock.ExecutionLock(autoselect_lock_abspath, relative_to=SYSLOCK_PATH, makedirs=True, dir_mode=self._dir_mode, file_mode=self._file_mode, umask=self._umask, blocking=True, check_interval=check_interval, lock_delay=0)
+		self._autoselect_lock = ppyutil.execlock.ExecutionLock(autoselect_lock_abspath, relative_to=SYSLOCK_PATH, makedirs=True, dir_mode=self._dir_mode, file_mode=self._file_mode, umask=self._umask, blocking=True, check_interval=check_interval, lock_delay=0)
 
 	def set_device(self, device, makedirs: Optional[bool] = True):
 		if device is not None:
@@ -247,11 +247,11 @@ class GPULevelLock(util.execlock.RunLevelLock):
 
 		# noinspection PyUnresolvedReferences
 		if torch.cuda.is_initialized():
-			raise util.execlock.ExecLockError(f"Device auto-selection should occur PRIOR to CUDA initialization")
+			raise ppyutil.execlock.ExecLockError(f"Device auto-selection should occur PRIOR to CUDA initialization")
 
 		max_ilevel = max(self._running_ilevel, self._solo_ilevel)
 		device_list = [torch.device(type='cuda', index=device_index) for device_index in range(torch.cuda.device_count())]
-		device_status: List[Optional[util.execlock.RunLockStatus]] = [None] * len(device_list)
+		device_status: List[Optional[ppyutil.execlock.RunLockStatus]] = [None] * len(device_list)
 		orig_makedirs = self._makedirs
 		try:
 			while True:
@@ -302,7 +302,7 @@ class GPULevelLockV(GPULevelLock):
 		self._in_progress = False
 
 	# noinspection PyProtectedMember
-	class ConfigCM(metaclass=util.contextman.ReentrantMeta):
+	class ConfigCM(metaclass=ppyutil.contextman.ReentrantMeta):
 
 		def __init__(self, run_lock, verbose=None, newline=None, block_newline=None, file=False, restore_to_init=False, sticky=False):
 			self._run_lock = run_lock

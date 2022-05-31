@@ -23,8 +23,8 @@ import torch.cuda.nccl
 import torch.utils.collect_env
 import torch.version
 import torchvision
-from util.print import print_warn
-import util.nvsmi
+import ppyutil.nvsmi
+from ppyutil.print import print_warn
 from pnnlib.util import device_util
 
 # Get a summary of the system information
@@ -111,7 +111,7 @@ def get_system_info_summary(cpu_only=False) -> Any:
 		# noinspection PyUnresolvedReferences
 		driver_max_cuda = version_int_to_str(pycuda.driver.get_driver_version(), 10)
 
-	nvsmi = util.nvsmi.NvidiaSMI()
+	nvsmi = ppyutil.nvsmi.NvidiaSMI()
 	driver_version = nvsmi.DeviceQuery('driver_version')['driver_version']
 	info['gpu']['driver'] = {
 		'version': driver_version,

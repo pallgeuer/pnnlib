@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.random
 import torch.backends.cudnn
-from util.print import printc, print_hor_line
+from ppyutil.print import printc, print_hor_line
 
 # Constants
 header_color = 'cyan'
