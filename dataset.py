@@ -116,7 +116,7 @@ class ChannelSpec(NamedTuple):
 # Data specification class
 class DataSpec(NamedTuple):
 	channels: Sequence[ChannelSpec]
-	groups: Union[bool, Sequence[Tuple[int]]]  # False (no groups), True (all in one group), or sequence of Tuple[int] specifying channel indices to group together
+	groups: Union[bool, Sequence[Tuple[int, ...]]]  # False (no groups), True (all in one group), or sequence of Tuple[int, ...] specifying channel indices to group together
 
 # Channel index class
 class ChannelIndex(NamedTuple):
@@ -140,14 +140,14 @@ class IOKind(Flag):
 
 # Agenda item tuple classes
 RawAgendaItem = namedtuple('RawAgendaItem', 'resource kind opts func')  # Format: ChannelSpec[Enum, Tuple], IOKind, Dict[Enum, Any], Callable
-TfrmAgendaItem = namedtuple('TfrmAgendaItem', 'channel kind opts raw_deps tfrm_deps func')  # Format: ChannelSpec[Enum, Tuple], IOKind, Dict[Enum, Any], Tuple[ChannelSpec[Enum, Tuple]], Tuple[ChannelSpec[Enum, Tuple]], Callable
-TensorizeAgendaItem = namedtuple('TensorizeAgendaItem', 'channel kind opts tfrm_deps tensor_deps func')  # Format: ChannelSpec[Enum, Tuple], IOKind, Dict[Enum, Any], Tuple[ChannelSpec[Enum, Tuple]], Tuple[ChannelSpec[Enum, Tuple]], Callable
+TfrmAgendaItem = namedtuple('TfrmAgendaItem', 'channel kind opts raw_deps tfrm_deps func')  # Format: ChannelSpec[Enum, Tuple], IOKind, Dict[Enum, Any], Tuple[ChannelSpec[Enum, Tuple], ...], Tuple[ChannelSpec[Enum, Tuple], ...], Callable
+TensorizeAgendaItem = namedtuple('TensorizeAgendaItem', 'channel kind opts tfrm_deps tensor_deps func')  # Format: ChannelSpec[Enum, Tuple], IOKind, Dict[Enum, Any], Tuple[ChannelSpec[Enum, Tuple], ...], Tuple[ChannelSpec[Enum, Tuple], ...], Callable
 
 ###########################
 ### Data spec functions ###
 ###########################
 
-# Resolve the grouping of a data specification to a standardised List of Tuple[int], where every channel occurs in at least one group, and there is at least one channel
+# Resolve the grouping of a data specification to a standardised List of Tuple[int, ...], where every channel occurs in at least one group, and there is at least one channel
 def resolve_data_spec_groups(data_spec):
 
 	if data_spec.groups is False:
@@ -550,7 +550,7 @@ class StagedDataset(torch.utils.data.Dataset):
 	@staticmethod
 	def _group_sample(tensor_data, group_specs, batchify):
 		# tensor_data = Dict of tensor values
-		# group_specs = Tuple[Tuple[ChannelSpec[Enum, Tuple]]]
+		# group_specs = Tuple[Tuple[ChannelSpec[Enum, Tuple], ...], ...]
 		# batchify = Whether to return the grouped sample as a size 1 batch
 		group_generator = (torch.cat(tuple(tensor_data[channel] for channel in group_spec), dim=0) if len(group_spec) > 1 else tensor_data[group_spec[0]] for group_spec in group_specs)
 		return tuple(tensor.unsqueeze(0) for tensor in group_generator) if batchify else tuple(group_generator)

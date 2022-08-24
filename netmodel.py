@@ -26,9 +26,9 @@ class NetModel(nn.Module):
 	reqd_input_map: Dict[dataset.ChannelTypeBase, dataset.ChannelIndex]
 	reqd_target_map: Dict[dataset.ChannelTypeBase, dataset.ChannelIndex]
 	reqd_output_map: Dict[dataset.ChannelTypeBase, dataset.ChannelIndex]
-	reqd_input_group_channels: Tuple[int]
-	reqd_target_group_channels: Tuple[int]
-	reqd_output_group_channels: Tuple[int]
+	reqd_input_group_channels: Tuple[int, ...]
+	reqd_target_group_channels: Tuple[int, ...]
+	reqd_output_group_channels: Tuple[int, ...]
 
 	def __init__(self, C):
 		super().__init__()
